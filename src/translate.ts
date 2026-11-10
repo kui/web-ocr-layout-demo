@@ -8,9 +8,12 @@ const MODEL_URL =
 type Progress = (loaded: number, total: number) => void
 
 let model: Promise<Wllama> | null = null
+let onDownload: Progress = () => {}
+let previous: Promise<unknown> = Promise.resolve()
 
-function load(onDownload: Progress): Promise<Wllama> {
-  model ??= (async () => {
+function load(): Promise<Wllama> {
+  if (model) return model
+  const loading = (async () => {
     const wllama = new Wllama({ default: wasmUrl }, { suppressNativeLog: true })
     await wllama.loadModelFromUrl(MODEL_URL, {
       n_ctx: 4096,
@@ -18,28 +21,34 @@ function load(onDownload: Progress): Promise<Wllama> {
     })
     return wllama
   })()
-  model.catch(() => (model = null))
-  return model
+  loading.catch(() => (model = null))
+  return (model = loading)
 }
 
 export async function translate(
   text: string,
   options: { onDownload: Progress; onPartial: (text: string) => void; signal: AbortSignal },
 ): Promise<void> {
-  const wllama = await load(options.onDownload)
-  options.signal.throwIfAborted()
+  onDownload = options.onDownload
+  const wllama = await load()
   let translated = ''
-  await wllama.createCompletion({
-    prompt: buildPrompt(text),
-    max_tokens: 1024,
-    temperature: 0,
-    stop: STOP,
-    abortSignal: options.signal,
-    stream: true,
-    onData: (chunk) => {
-      translated += chunk.choices[0]?.text ?? ''
-      options.onPartial(translated)
-    },
+  // An aborted completion keeps the model busy until it returns.
+  const completion = previous.then(() => {
+    options.signal.throwIfAborted()
+    return wllama.createCompletion({
+      prompt: buildPrompt(text),
+      max_tokens: 1024,
+      temperature: 0,
+      stop: STOP,
+      abortSignal: options.signal,
+      stream: true,
+      onData: (chunk) => {
+        translated += chunk.choices[0]?.text ?? ''
+        options.onPartial(translated)
+      },
+    })
   })
+  previous = completion.catch(() => {})
+  await completion
   options.signal.throwIfAborted()
 }

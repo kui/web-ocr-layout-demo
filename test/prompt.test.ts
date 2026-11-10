@@ -16,6 +16,12 @@ describe('reflow', () => {
     expect(reflow([' one ', '', 'two'])).toBe('one two')
   })
 
+  it('joins lines of a language written without spaces directly', () => {
+    expect(reflow(['図書館は平日の', '夜9時まで開館します。'])).toBe(
+      '図書館は平日の夜9時まで開館します。',
+    )
+  })
+
   it('returns an empty string for no lines', () => {
     expect(reflow([])).toBe('')
   })

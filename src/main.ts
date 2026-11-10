@@ -83,11 +83,15 @@ const hidden = new Set<LayoutLabel>()
 
 const radios = [...document.querySelectorAll<HTMLInputElement>('input[name="backend"]')]
 
+function syncTranslateButton() {
+  translateAll.disabled = busy || !result || translating !== null
+}
+
 /** Switches are locked during a run so they always match the result on screen. */
 function setBusy(value: boolean) {
   busy = value
   layout.disabled = value
-  translateAll.disabled = value || !result || translating !== null
+  syncTranslateButton()
   for (const radio of radios) radio.disabled = value || (radio.value === 'webgpu' && !hasWebGpu)
 }
 
@@ -100,13 +104,16 @@ function setStatus(text: string, error = false) {
   status.classList.toggle('error', error)
 }
 
+const regionKey = (region: { id: number }) => `r${region.id}`
+const orphanKey = (index: number) => `o${index}`
+
 function visibleItems(): Item[] {
   if (!result) return []
   const minScore = Number(score.value)
   const regions = result.regions
     .filter(({ region }) => region.score >= minScore && !hidden.has(region.label))
     .map(({ region, text, lines, table }): Item => ({
-      key: `r${region.id}`,
+      key: regionKey(region),
       title: `${region.order + 1}. ${region.label}（${region.score.toFixed(2)}）`,
       box: region.box,
       text,
@@ -118,7 +125,7 @@ function visibleItems(): Item[] {
     }))
   const numbered = !result.layout
   const orphans = result.orphans.map((line, i): Item => ({
-    key: `o${i}`,
+    key: orphanKey(i),
     title: numbered ? `${i + 1}. 行（${line.score.toFixed(2)}）` : '領域外のテキスト',
     box: line.box,
     text: line.text,
@@ -250,7 +257,7 @@ function render() {
 
   $('score-value').textContent = Number(score.value).toFixed(2)
   copyAll.disabled = download.disabled = !result
-  translateAll.disabled = busy || !result || translating !== null
+  syncTranslateButton()
 }
 
 const withTranslations = (r: PageResult | null) =>
@@ -258,9 +265,9 @@ const withTranslations = (r: PageResult | null) =>
     ...r,
     regions: r.regions.map((entry) => ({
       ...entry,
-      translation: translations.get(`r${entry.region.id}`),
+      translation: translations.get(regionKey(entry.region)),
     })),
-    orphans: r.orphans.map((line, i) => ({ ...line, translation: translations.get(`o${i}`) })),
+    orphans: r.orphans.map((line, i) => ({ ...line, translation: translations.get(orphanKey(i)) })),
   }
 
 function report(r: PageResult) {
@@ -302,6 +309,7 @@ async function translateVisible() {
       await translate(reflow(item.lines.map((line) => line.text)), {
         signal,
         onDownload: (loaded, total) =>
+          signal.aborted ||
           setStatus(
             loaded < total
               ? `翻訳モデルをダウンロード中… ${megabytes(loaded)} / ${megabytes(total)} MB`
@@ -312,12 +320,9 @@ async function translateVisible() {
     }
     setStatus(`${items.length} 件を翻訳しました。`)
   } catch (error) {
+    if (signal.aborted) return
     translations.delete(current)
-    if (!signal.aborted)
-      setStatus(
-        `翻訳に失敗しました: ${error instanceof Error ? error.message : String(error)}`,
-        true,
-      )
+    setStatus(`翻訳に失敗しました: ${error instanceof Error ? error.message : String(error)}`, true)
   } finally {
     if (translating?.signal === signal) {
       translating = null
