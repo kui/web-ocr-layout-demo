@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>レイアウト認識 + OCR デモ</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>レイアウト認識 + OCR <small>PP-DocLayoutV3 / PP-OCRv6 small</small></h1>
+      <div class="controls">
+        <fieldset id="backend" aria-label="推論バックエンド">
+          <label><input type="radio" name="backend" value="webgpu" />WebGPU</label>
+          <label><input type="radio" name="backend" value="wasm" />WASM</label>
+        </fieldset>
+        <label class="check"><input id="layout" type="checkbox" checked />レイアウト認識</label>
+        <button id="pick" type="button">画像を選ぶ</button>
+        <input id="file" type="file" accept="image/*" hidden />
+        <button id="sample" type="button">サンプルで試す</button>
+        <label class="slider">スコア ≥ <output id="score-value"></output>
+          <input id="score" type="range" min="0.3" max="0.95" step="0.05" value="0.5" />
+        </label>
+        <button id="copy-all" type="button" disabled>全文コピー</button>
+        <button id="download" type="button" disabled>JSON</button>
+      </div>
+      <p id="status" role="status">画像をドロップ、貼り付け、または選択してください。</p>
+      <div id="labels"></div>
+    </header>
+    <main>
+      <section id="stage">
+        <div id="drop">ここに画像をドラッグ＆ドロップ</div>
+        <div id="page" hidden><img id="image" alt="解析対象の画像" /><div id="boxes"></div></div>
+      </section>
+      <aside id="panel" aria-label="読み順のテキスト"></aside>
+    </main>
+    <div id="tip" hidden></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
