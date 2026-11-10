@@ -7,6 +7,8 @@ const isolation = {
 }
 
 export default defineConfig({
+  // Relative asset URLs, so the build works from any directory of a static host.
+  base: './',
   lint: {
     jsPlugins: [{ name: 'vite-plus', specifier: 'vite-plus/oxlint-plugin' }],
     rules: { 'vite-plus/prefer-vite-plus-imports': 'error' },

@@ -57,6 +57,16 @@ const UNSURE = 0.8
 const MAX_LISTED = 8
 const LINE_COLOR = 'hsl(215 70% 45%)'
 
+// Where the server does not send the isolation headers, a service worker adds them. They apply
+// from the next page load, so the page reloads once when the worker first takes control.
+if (!crossOriginIsolated && 'serviceWorker' in navigator) {
+  const uncontrolled = !navigator.serviceWorker.controller
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (uncontrolled) location.reload()
+  })
+  void navigator.serviceWorker.register(`${import.meta.env.BASE_URL}coi-sw.js`)
+}
+
 const worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' })
 const hasWebGpu = 'gpu' in navigator
 
@@ -316,7 +326,7 @@ $<HTMLInputElement>('file').addEventListener('change', (event) => {
   input.value = ''
 })
 $('sample').addEventListener('click', async () =>
-  open(await (await fetch('/samples/sample-ja.png')).blob()),
+  open(await (await fetch(`${import.meta.env.BASE_URL}samples/sample-ja.png`)).blob()),
 )
 score.addEventListener('input', render)
 layout.addEventListener('change', () => void run())
