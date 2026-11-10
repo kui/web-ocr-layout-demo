@@ -3,9 +3,10 @@ import { groupByRegion, planLines } from './assign'
 import { parseCharset } from './ctc'
 import { detectLines } from './det'
 import { detectLayout } from './layout'
+import { fetchModel } from './models'
 import { createSession, type ort } from './ort'
 import { recognize } from './rec'
-import type { Backend, PageResult, Request, Response, Stage } from './types'
+import type { Backend, ModelName, PageResult, Request, Response, Stage } from './types'
 
 type Models = {
   backend: Backend
@@ -19,6 +20,9 @@ let charset: string[] | null = null
 
 const post = (message: Response) => self.postMessage(message)
 
+const fetchBytes = (model: ModelName) =>
+  fetchModel(model, (loaded, total) => post({ type: 'download', model, loaded, total }))
+
 /** Sessions are created one at a time because the WebGPU provider rejects concurrent creation. */
 async function load(backend: Backend, withLayout: boolean): Promise<Models> {
   if (models?.backend !== backend) {
@@ -28,12 +32,12 @@ async function load(backend: Backend, withLayout: boolean): Promise<Models> {
       await Promise.all(
         [previous.det, previous.rec, previous.layout].map((s) => s?.release() ?? Promise.resolve()),
       )
-    charset ??= parseCharset(await (await fetch('/models/rec.yml')).text())
-    const det = await createSession('/models/det.onnx', backend)
-    const rec = await createSession('/models/rec.onnx', backend)
+    charset ??= parseCharset(new TextDecoder().decode(await fetchBytes('charset')))
+    const det = await createSession(await fetchBytes('det'), backend)
+    const rec = await createSession(await fetchBytes('rec'), backend)
     models = { backend, det, rec, layout: null }
   }
-  if (withLayout) models.layout ??= await createSession('/models/layout.onnx', backend)
+  if (withLayout) models.layout ??= await createSession(await fetchBytes('layout'), backend)
   return models
 }
 

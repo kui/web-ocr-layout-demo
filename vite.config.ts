@@ -17,7 +17,7 @@ export default defineConfig({
     singleQuote: true,
     printWidth: 100,
     sortPackageJson: false,
-    ignorePatterns: ['dist/', 'public/models/', 'package-lock.json'],
+    ignorePatterns: ['dist/', 'package-lock.json'],
   },
   server: { headers: isolation },
   preview: { headers: isolation },

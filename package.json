@@ -5,7 +5,6 @@
     "test": "vp test run",
     "dev": "vp dev",
     "build": "vp build",
-    "fetch-models": "node scripts/fetch-models.mjs",
     "format": "vp fmt .",
     "check": "vp check",
     "lint": "vp lint"

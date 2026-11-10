@@ -41,6 +41,7 @@ export type Line = Recognized & { box: Box }
 export type RegionText = { region: Region; lines: Line[]; text: string; table?: string[][] }
 
 export type Backend = 'webgpu' | 'wasm'
+export type ModelName = 'layout' | 'det' | 'rec' | 'charset'
 export type Stage = 'load' | 'layout' | 'det' | 'rec'
 export type Timings = Record<Stage, number>
 
@@ -60,5 +61,6 @@ export type PageResult = {
 export type Request = { type: 'run'; image: ImageBitmap; backend: Backend; layout: boolean }
 export type Response =
   | { type: 'progress'; stage: Stage }
+  | { type: 'download'; model: ModelName; loaded: number; total: number }
   | { type: 'result'; result: PageResult }
   | { type: 'error'; message: string }

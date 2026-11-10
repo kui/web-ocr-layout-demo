@@ -8,6 +8,7 @@ import {
   type PageResult,
   type Request,
   type Response,
+  type ModelName,
   type Stage,
 } from './types'
 
@@ -43,6 +44,13 @@ const STAGE_TEXT: Record<Stage, string> = {
   det: '文字を検出中…',
   rec: '文字を認識中…',
 }
+const MODEL_TEXT: Record<ModelName, string> = {
+  layout: 'レイアウト認識モデル',
+  det: '文字検出モデル',
+  rec: '文字認識モデル',
+  charset: '文字辞書',
+}
+const megabytes = (bytes: number) => (bytes / 1e6).toFixed(1)
 const ORPHAN_COLOR = '#8a8d93'
 /** Characters recognized with less confidence than this are marked and listed with their alternatives. */
 const UNSURE = 0.8
@@ -271,6 +279,12 @@ function open(blob: Blob) {
 
 worker.onmessage = ({ data }: MessageEvent<Response>) => {
   if (data.type === 'progress') return setStatus(STAGE_TEXT[data.stage])
+  if (data.type === 'download')
+    return setStatus(
+      data.loaded < data.total
+        ? `${MODEL_TEXT[data.model]}をダウンロード中… ${megabytes(data.loaded)} / ${megabytes(data.total)} MB`
+        : STAGE_TEXT.load,
+    )
   setBusy(false)
   if (data.type === 'error') return setStatus(`解析に失敗しました: ${data.message}`, true)
   result = data.result

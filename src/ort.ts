@@ -7,8 +7,8 @@ ort.env.wasm.wasmPaths = { mjs: mjsUrl, wasm: wasmUrl }
 
 export { ort }
 
-export function createSession(url: string, backend: Backend): Promise<ort.InferenceSession> {
-  return ort.InferenceSession.create(url, {
+export function createSession(model: Uint8Array, backend: Backend): Promise<ort.InferenceSession> {
+  return ort.InferenceSession.create(model, {
     executionProviders: [backend],
     graphOptimizationLevel: 'all',
     logSeverityLevel: 3,
