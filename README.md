@@ -62,7 +62,6 @@ WebGPU での解析に失敗した場合は、自動で WASM に切り替えて�
 - 縦書きは、縦長の行を 90° 回して読むだけです。精度は確認していません。
 - 文書の向きと歪みは補正しません。
 - 長辺が 960 px を超える画像は、文字検出の前に 960 px へ縮小します。小さい文字は検出できないことがあります。
-- 公開サーバーでの配信は想定していません。`npm run dev` で使ってください。
 
 ## 開発
 
@@ -85,5 +84,13 @@ npm test
 ```bash
 npm run format
 ```
+
+## 公開する
+
+`npm run build` が作る `dist/` は、静的なファイルだけです。どの静的ホスティングの、どのディレクトリにも置けます。
+
+`main` に push すると、CI が検査のあとに `dist/` を GitHub Pages へデプロイします。先に、リポジトリの **Settings** → **Pages** で **Source** を **GitHub Actions** にしてください。設定していないと、`deploy` ジョブが失敗します。
+
+WASM のマルチスレッドには、`Cross-Origin-Opener-Policy` と `Cross-Origin-Embedder-Policy` の応答ヘッダーが必要です。GitHub Pages のようにヘッダーを設定できないホスティングでは、Service Worker（`public/coi-sw.js`）が代わりに付けます。このため、最初に開いたときにページが 1 回だけ自動で再読み込みされます。
 
 取得するモデルは、PaddlePaddle が Apache-2.0 で配布しているものです。
