@@ -35,7 +35,10 @@ function drawCrop(image: ImageBitmap, crop: Crop): Uint8ClampedArray {
 }
 
 export async function recognize(
-  session: ort.InferenceSession, image: ImageBitmap, boxes: readonly Box[], charset: readonly string[],
+  session: ort.InferenceSession,
+  image: ImageBitmap,
+  boxes: readonly Box[],
+  charset: readonly string[],
 ): Promise<Recognized[]> {
   const crops = boxes.map(planCrop).sort((a, b) => a.bucket - b.bucket)
   const results = new Array<Recognized>(boxes.length)
@@ -50,15 +53,33 @@ export async function recognize(
 
     const stride = 3 * HEIGHT * bucket
     const pixels = new Float32Array(batch.length * stride)
-    batch.forEach((crop, i) => writeChw(drawCrop(image, crop), crop.width, HEIGHT, pixels, i * stride, bucket, norm))
+    batch.forEach((crop, i) =>
+      writeChw(drawCrop(image, crop), crop.width, HEIGHT, pixels, i * stride, bucket, norm),
+    )
 
-    const out = await session.run({ [session.inputNames[0]!]: new ort.Tensor('float32', pixels, [batch.length, 3, HEIGHT, bucket]) })
+    const out = await session.run({
+      [session.inputNames[0]!]: new ort.Tensor('float32', pixels, [
+        batch.length,
+        3,
+        HEIGHT,
+        bucket,
+      ]),
+    })
     const { data, dims } = out[session.outputNames[0]!]!
     const steps = dims[1]!
     const classes = dims[2]!
-    if (classes !== charset.length) throw new Error(`recognition model has ${classes} classes but the dictionary has ${charset.length}`)
+    if (classes !== charset.length)
+      throw new Error(
+        `recognition model has ${classes} classes but the dictionary has ${charset.length}`,
+      )
     batch.forEach((crop, i) => {
-      results[crop.index] = ctcDecode(data as Float32Array, i * steps * classes, steps, classes, charset)
+      results[crop.index] = ctcDecode(
+        data as Float32Array,
+        i * steps * classes,
+        steps,
+        classes,
+        charset,
+      )
     })
   }
   return results

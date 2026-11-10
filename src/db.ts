@@ -14,20 +14,31 @@ export function dbBoxes(prob: Float32Array, width: number, height: number, opts:
 
   for (let start = 0; start < prob.length; start++) {
     if (seen[start] || prob[start]! <= opts.thresh) continue
-    let x1 = width, y1 = height, x2 = -1, y2 = -1, sum = 0, count = 0
+    let x1 = width,
+      y1 = height,
+      x2 = -1,
+      y2 = -1,
+      sum = 0,
+      count = 0
     seen[start] = 1
     stack.push(start)
     while (stack.length) {
       const i = stack.pop()!
       const x = i % width
       const y = (i - x) / width
-      x1 = Math.min(x1, x); x2 = Math.max(x2, x); y1 = Math.min(y1, y); y2 = Math.max(y2, y)
+      x1 = Math.min(x1, x)
+      x2 = Math.max(x2, x)
+      y1 = Math.min(y1, y)
+      y2 = Math.max(y2, y)
       sum += prob[i]!
       count++
       for (let ny = Math.max(0, y - 1); ny <= Math.min(height - 1, y + 1); ny++) {
         for (let nx = Math.max(0, x - 1); nx <= Math.min(width - 1, x + 1); nx++) {
           const n = ny * width + nx
-          if (!seen[n] && prob[n]! > opts.thresh) { seen[n] = 1; stack.push(n) }
+          if (!seen[n] && prob[n]! > opts.thresh) {
+            seen[n] = 1
+            stack.push(n)
+          }
         }
       }
     }

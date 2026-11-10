@@ -8,7 +8,7 @@
 
 ## 必要なもの
 
-- Node.js 22 以降と npm（Node.js 24 で動作を確認しています）
+- Node.js 24.11 以降と npm（Node.js 22 の場合は 22.18 以降）
 - WebGPU を使う場合は、WebGPU に対応したブラウザ（Chrome、Edge など）。対応していないブラウザでは WASM だけを選べます。
 - モデルを取得するための huggingface.co への接続と、空き容量 約 160 MB
 
@@ -62,10 +62,18 @@ WebGPU での解析に失敗した場合は、自動で WASM に切り替えて�
 
 ## 開発
 
-単体テストは次のコマンドで実行します。
+ビルド、テスト、整形には [Vite+](https://viteplus.dev/guide/) を使います。プロジェクト内の `vite-plus` だけで動くので、`vp` コマンドを別に入れる必要はありません。
+
+単体テストを実行します。
 
 ```bash
 npm test
+```
+
+コードを整形します。
+
+```bash
+npm run format
 ```
 
 取得するモデルは、PaddlePaddle が Apache-2.0 で配布しているものです。

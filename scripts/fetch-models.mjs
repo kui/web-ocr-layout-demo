@@ -15,7 +15,11 @@ const files = [
   { name: 'rec.yml', url: hf('PP-OCRv6_small_rec_onnx', 'inference.yml') },
 ]
 
-const sizeOf = (path) => stat(path).then((s) => s.size, () => -1)
+const sizeOf = (path) =>
+  stat(path).then(
+    (s) => s.size,
+    () => -1,
+  )
 
 await mkdir(outDir, { recursive: true })
 for (const { name, url, bytes } of files) {

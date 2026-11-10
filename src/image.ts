@@ -1,6 +1,10 @@
 import type { Box } from './types'
 
-export type Norm = { mean: readonly [number, number, number]; std: readonly [number, number, number]; bgr: boolean }
+export type Norm = {
+  mean: readonly [number, number, number]
+  std: readonly [number, number, number]
+  bgr: boolean
+}
 
 export function context(width: number, height: number): OffscreenCanvasRenderingContext2D {
   const ctx = new OffscreenCanvas(width, height).getContext('2d', { willReadFrequently: true })
@@ -11,8 +15,13 @@ export function context(width: number, height: number): OffscreenCanvasRendering
 
 /** Writes RGBA pixels as normalized planar CHW floats at `offset`; `out` rows may be wider than the image. */
 export function writeChw(
-  rgba: Uint8ClampedArray, width: number, height: number,
-  out: Float32Array, offset: number, outWidth: number, norm: Norm,
+  rgba: Uint8ClampedArray,
+  width: number,
+  height: number,
+  out: Float32Array,
+  offset: number,
+  outWidth: number,
+  norm: Norm,
 ): void {
   const plane = outWidth * height
   for (let c = 0; c < 3; c++) {
@@ -31,7 +40,10 @@ export function writeChw(
 export const area = (b: Box): number => Math.max(0, b.x2 - b.x1) * Math.max(0, b.y2 - b.y1)
 
 export const intersect = (a: Box, b: Box): Box => ({
-  x1: Math.max(a.x1, b.x1), y1: Math.max(a.y1, b.y1), x2: Math.min(a.x2, b.x2), y2: Math.min(a.y2, b.y2),
+  x1: Math.max(a.x1, b.x1),
+  y1: Math.max(a.y1, b.y1),
+  x2: Math.min(a.x2, b.x2),
+  y2: Math.min(a.y2, b.y2),
 })
 
 export function iou(a: Box, b: Box): number {

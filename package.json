@@ -2,10 +2,11 @@
   "name": "web-ocr-layout-demo",
   "version": "1.0.0",
   "scripts": {
-    "test": "vitest run",
-    "dev": "vite",
-    "build": "tsc --noEmit && vite build",
-    "fetch-models": "node scripts/fetch-models.mjs"
+    "test": "vp test run",
+    "dev": "vp dev",
+    "build": "tsc --noEmit && vp build",
+    "fetch-models": "node scripts/fetch-models.mjs",
+    "format": "vp fmt ."
   },
   "type": "module",
   "dependencies": {
@@ -14,8 +15,11 @@
   "devDependencies": {
     "@webgpu/types": "^0.1.74",
     "typescript": "^7.0.2",
-    "vite": "^8.3.7",
-    "vitest": "^5.1.0"
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.5.1",
+    "vite-plus": "1.5.1"
   },
-  "private": true
+  "private": true,
+  "overrides": {
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.5.1"
+  }
 }

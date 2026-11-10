@@ -1,14 +1,22 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vite-plus/test'
 import { groupByRegion, planLines } from '../src/assign'
 import type { Box, LayoutLabel, Region } from '../src/types'
 
 const box = (x1: number, y1: number, x2: number, y2: number): Box => ({ x1, y1, x2, y2 })
-const region = (id: number, b: Box, label: LayoutLabel = 'text'): Region => ({ id, label, score: 0.9, box: b, order: id })
+const region = (id: number, b: Box, label: LayoutLabel = 'text'): Region => ({
+  id,
+  label,
+  score: 0.9,
+  box: b,
+  order: id,
+})
 
 describe('planLines', () => {
   it('gives a line to the region that contains it', () => {
     const regions = [region(0, box(0, 0, 400, 300)), region(1, box(0, 400, 400, 700))]
-    expect(planLines(regions, [box(10, 410, 390, 440)])).toEqual([{ regionId: 1, box: box(10, 410, 390, 440) }])
+    expect(planLines(regions, [box(10, 410, 390, 440)])).toEqual([
+      { regionId: 1, box: box(10, 410, 390, 440) },
+    ])
   })
 
   it('cuts a line that runs across two columns at the column edges', () => {
@@ -21,12 +29,16 @@ describe('planLines', () => {
 
   it('prefers the inner region when regions are nested', () => {
     const regions = [region(0, box(0, 0, 800, 600), 'table'), region(1, box(100, 100, 300, 140))]
-    expect(planLines(regions, [box(105, 105, 295, 135)])).toEqual([{ regionId: 1, box: box(105, 105, 295, 135) }])
+    expect(planLines(regions, [box(105, 105, 295, 135)])).toEqual([
+      { regionId: 1, box: box(105, 105, 295, 135) },
+    ])
   })
 
   it('keeps a line outside every region as an orphan', () => {
     const line = box(500, 500, 700, 530)
-    expect(planLines([region(0, box(0, 0, 400, 300))], [line])).toEqual([{ regionId: null, box: line }])
+    expect(planLines([region(0, box(0, 0, 400, 300))], [line])).toEqual([
+      { regionId: null, box: line },
+    ])
   })
 
   it('recognizes a line-shaped text region whole when no line was detected in it', () => {
@@ -35,7 +47,9 @@ describe('planLines', () => {
   })
 
   it('leaves empty image regions and block-shaped text regions alone', () => {
-    expect(planLines([region(0, box(0, 0, 400, 40), 'image'), region(1, box(0, 100, 400, 400))], [])).toEqual([])
+    expect(
+      planLines([region(0, box(0, 0, 400, 40), 'image'), region(1, box(0, 100, 400, 400))], []),
+    ).toEqual([])
   })
 })
 

@@ -14,8 +14,10 @@ export function parseDetections(rows: Float32Array, width: number, height: numbe
     const score = rows[i + 1]!
     if (!label || score < MIN_SCORE) continue
     const box = {
-      x1: Math.max(0, rows[i + 2]!), y1: Math.max(0, rows[i + 3]!),
-      x2: Math.min(width, rows[i + 4]!), y2: Math.min(height, rows[i + 5]!),
+      x1: Math.max(0, rows[i + 2]!),
+      y1: Math.max(0, rows[i + 3]!),
+      x2: Math.min(width, rows[i + 4]!),
+      y2: Math.min(height, rows[i + 5]!),
     }
     if (box.x2 - box.x1 < 1 || box.y2 - box.y1 < 1) continue
     found.push({ label, score, box, rank: rows[i + 6]! })
@@ -24,7 +26,9 @@ export function parseDetections(rows: Float32Array, width: number, height: numbe
   found.sort((a, b) => b.score - a.score)
   const kept: typeof found = []
   for (const d of found) {
-    const duplicate = kept.some((k) => iou(k.box, d.box) > (k.label === d.label ? IOU_SAME_LABEL : IOU_OTHER_LABEL))
+    const duplicate = kept.some(
+      (k) => iou(k.box, d.box) > (k.label === d.label ? IOU_SAME_LABEL : IOU_OTHER_LABEL),
+    )
     if (!duplicate) kept.push(d)
   }
 

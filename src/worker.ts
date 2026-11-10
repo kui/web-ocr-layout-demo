@@ -7,7 +7,12 @@ import { createSession, type ort } from './ort'
 import { recognize } from './rec'
 import type { Backend, PageResult, Request, Response, Stage } from './types'
 
-type Models = { backend: Backend; det: ort.InferenceSession; rec: ort.InferenceSession; layout: ort.InferenceSession | null }
+type Models = {
+  backend: Backend
+  det: ort.InferenceSession
+  rec: ort.InferenceSession
+  layout: ort.InferenceSession | null
+}
 
 let models: Models | null = null
 let charset: string[] | null = null
@@ -19,7 +24,8 @@ async function load(backend: Backend, withLayout: boolean): Promise<Models> {
   if (models?.backend !== backend) {
     const previous = models
     models = null
-    if (previous) await Promise.all([previous.det, previous.rec, previous.layout].map((s) => s?.release()))
+    if (previous)
+      await Promise.all([previous.det, previous.rec, previous.layout].map((s) => s?.release()))
     charset ??= parseCharset(await (await fetch('/models/rec.yml')).text())
     const det = await createSession('/models/det.onnx', backend)
     const rec = await createSession('/models/rec.onnx', backend)
@@ -29,7 +35,11 @@ async function load(backend: Backend, withLayout: boolean): Promise<Models> {
   return models
 }
 
-async function analyze(image: ImageBitmap, backend: Backend, withLayout: boolean): Promise<PageResult> {
+async function analyze(
+  image: ImageBitmap,
+  backend: Backend,
+  withLayout: boolean,
+): Promise<PageResult> {
   const timings = { load: 0, layout: 0, det: 0, rec: 0 }
   const timed = async <T>(stage: Stage, work: () => Promise<T>): Promise<T> => {
     post({ type: 'progress', stage })
@@ -40,11 +50,26 @@ async function analyze(image: ImageBitmap, backend: Backend, withLayout: boolean
   }
 
   const { layout, det, rec } = await timed('load', () => load(backend, withLayout))
-  const regions = withLayout && layout ? await timed('layout', () => detectLayout(layout, image)) : []
+  const regions =
+    withLayout && layout ? await timed('layout', () => detectLayout(layout, image)) : []
   const lineBoxes = await timed('det', () => detectLines(det, image))
   const planned = planLines(regions, lineBoxes)
-  const texts = await timed('rec', () => recognize(rec, image, planned.map((p) => p.box), charset!))
-  return { layout: withLayout, width: image.width, height: image.height, ...groupByRegion(regions, planned, texts), timings, backend }
+  const texts = await timed('rec', () =>
+    recognize(
+      rec,
+      image,
+      planned.map((p) => p.box),
+      charset!,
+    ),
+  )
+  return {
+    layout: withLayout,
+    width: image.width,
+    height: image.height,
+    ...groupByRegion(regions, planned, texts),
+    timings,
+    backend,
+  }
 }
 
 const describe = (error: unknown) => (error instanceof Error ? error.message : String(error))

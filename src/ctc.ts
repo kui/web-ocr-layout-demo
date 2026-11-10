@@ -18,18 +18,33 @@ export function parseCharset(yml: string): string[] {
 const MIN_ALT_SCORE = 0.01
 const MAX_ALTS = 2
 
-function runnersUp(probs: Float32Array, row: number, classes: number, best: number, charset: readonly string[]): Candidate[] {
+function runnersUp(
+  probs: Float32Array,
+  row: number,
+  classes: number,
+  best: number,
+  charset: readonly string[],
+): Candidate[] {
   const alts: { index: number; score: number }[] = []
   for (let c = 1; c < classes; c++) {
     const score = probs[row + c]!
     if (c === best || score < MIN_ALT_SCORE) continue
     alts.push({ index: c, score })
   }
-  return alts.sort((a, b) => b.score - a.score).slice(0, MAX_ALTS).map(({ index, score }) => ({ char: charset[index] ?? '', score }))
+  return alts
+    .sort((a, b) => b.score - a.score)
+    .slice(0, MAX_ALTS)
+    .map(({ index, score }) => ({ char: charset[index] ?? '', score }))
 }
 
 /** Greedy CTC over `steps` rows of `classes` probabilities; class 0 is the blank. */
-export function ctcDecode(probs: Float32Array, offset: number, steps: number, classes: number, charset: readonly string[]): Recognized {
+export function ctcDecode(
+  probs: Float32Array,
+  offset: number,
+  steps: number,
+  classes: number,
+  charset: readonly string[],
+): Recognized {
   const chars: Char[] = []
   let previous = 0
   for (let t = 0; t < steps; t++) {
@@ -37,10 +52,18 @@ export function ctcDecode(probs: Float32Array, offset: number, steps: number, cl
     let best = 0
     for (let c = 1; c < classes; c++) if (probs[row + c]! > probs[row + best]!) best = c
     if (best !== 0 && best !== previous) {
-      chars.push({ char: charset[best] ?? '', score: probs[row + best]!, alts: runnersUp(probs, row, classes, best, charset) })
+      chars.push({
+        char: charset[best] ?? '',
+        score: probs[row + best]!,
+        alts: runnersUp(probs, row, classes, best, charset),
+      })
     }
     previous = best
   }
   const total = chars.reduce((sum, c) => sum + c.score, 0)
-  return { text: chars.map((c) => c.char).join(''), score: chars.length ? total / chars.length : 0, chars }
+  return {
+    text: chars.map((c) => c.char).join(''),
+    score: chars.length ? total / chars.length : 0,
+    chars,
+  }
 }
