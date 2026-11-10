@@ -25,7 +25,9 @@ async function load(backend: Backend, withLayout: boolean): Promise<Models> {
     const previous = models
     models = null
     if (previous)
-      await Promise.all([previous.det, previous.rec, previous.layout].map((s) => s?.release()))
+      await Promise.all(
+        [previous.det, previous.rec, previous.layout].map((s) => s?.release() ?? Promise.resolve()),
+      )
     charset ??= parseCharset(await (await fetch('/models/rec.yml')).text())
     const det = await createSession('/models/det.onnx', backend)
     const rec = await createSession('/models/rec.onnx', backend)

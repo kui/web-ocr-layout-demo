@@ -4,9 +4,11 @@
   "scripts": {
     "test": "vp test run",
     "dev": "vp dev",
-    "build": "tsc --noEmit && vp build",
+    "build": "vp build",
     "fetch-models": "node scripts/fetch-models.mjs",
-    "format": "vp fmt ."
+    "format": "vp fmt .",
+    "check": "vp check",
+    "lint": "vp lint"
   },
   "type": "module",
   "dependencies": {

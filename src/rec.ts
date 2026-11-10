@@ -41,7 +41,7 @@ export async function recognize(
   charset: readonly string[],
 ): Promise<Recognized[]> {
   const crops = boxes.map(planCrop).sort((a, b) => a.bucket - b.bucket)
-  const results = new Array<Recognized>(boxes.length)
+  const results: Recognized[] = []
   const norm = { mean: [0.5, 0.5, 0.5], std: [0.5, 0.5, 0.5], bgr: true } as const
 
   for (let at = 0; at < crops.length;) {

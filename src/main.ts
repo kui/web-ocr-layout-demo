@@ -215,7 +215,7 @@ function render() {
       chip.style.setProperty('--c', colorOf(label))
       chip.setAttribute('aria-pressed', String(!hidden.has(label)))
       chip.addEventListener('click', () => {
-        hidden.has(label) ? hidden.delete(label) : hidden.add(label)
+        if (!hidden.delete(label)) hidden.add(label)
         render()
       })
       return chip
