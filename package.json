@@ -11,6 +11,7 @@
   },
   "type": "module",
   "dependencies": {
+    "@wllama/wllama": "^3.13.0",
     "onnxruntime-web": "^1.31.1"
   },
   "devDependencies": {

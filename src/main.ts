@@ -11,6 +11,8 @@ import {
   type ModelName,
   type Stage,
 } from './types'
+import { reflow } from './prompt'
+import { translate } from './translate'
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T
 const status = $('status')
@@ -24,6 +26,7 @@ const score = $<HTMLInputElement>('score')
 const layout = $<HTMLInputElement>('layout')
 const copyAll = $<HTMLButtonElement>('copy-all')
 const download = $<HTMLButtonElement>('download')
+const translateAll = $<HTMLButtonElement>('translate')
 
 /** One entry shown both as a box on the page and as a block in the text panel. */
 type Item = {
@@ -74,14 +77,21 @@ let backend: Backend = hasWebGpu ? 'webgpu' : 'wasm'
 let source: Blob | null = null
 let result: PageResult | null = null
 let busy = false
+let translating: AbortController | null = null
+const translations = new Map<string, string>()
 const hidden = new Set<LayoutLabel>()
 
 const radios = [...document.querySelectorAll<HTMLInputElement>('input[name="backend"]')]
+
+function syncTranslateButton() {
+  translateAll.disabled = busy || !result || translating !== null
+}
 
 /** Switches are locked during a run so they always match the result on screen. */
 function setBusy(value: boolean) {
   busy = value
   layout.disabled = value
+  syncTranslateButton()
   for (const radio of radios) radio.disabled = value || (radio.value === 'webgpu' && !hasWebGpu)
 }
 
@@ -94,13 +104,16 @@ function setStatus(text: string, error = false) {
   status.classList.toggle('error', error)
 }
 
+const regionKey = (region: { id: number }) => `r${region.id}`
+const orphanKey = (index: number) => `o${index}`
+
 function visibleItems(): Item[] {
   if (!result) return []
   const minScore = Number(score.value)
   const regions = result.regions
     .filter(({ region }) => region.score >= minScore && !hidden.has(region.label))
     .map(({ region, text, lines, table }): Item => ({
-      key: `r${region.id}`,
+      key: regionKey(region),
       title: `${region.order + 1}. ${region.label}（${region.score.toFixed(2)}）`,
       box: region.box,
       text,
@@ -112,7 +125,7 @@ function visibleItems(): Item[] {
     }))
   const numbered = !result.layout
   const orphans = result.orphans.map((line, i): Item => ({
-    key: `o${i}`,
+    key: orphanKey(i),
     title: numbered ? `${i + 1}. 行（${line.score.toFixed(2)}）` : '領域外のテキスト',
     box: line.box,
     text: line.text,
@@ -218,6 +231,8 @@ function render() {
       el.dataset.key = item.key
       el.style.setProperty('--c', item.color)
       el.append(element('div', 'meta', item.title), content(item))
+      const translation = translations.get(item.key)
+      if (translation) el.append(element('div', 'translation', translation))
       el.addEventListener('mouseenter', () => setActive(item.key))
       el.addEventListener('mouseleave', () => setActive(null))
       el.addEventListener('click', () => copy(item.text, item.title))
@@ -242,7 +257,18 @@ function render() {
 
   $('score-value').textContent = Number(score.value).toFixed(2)
   copyAll.disabled = download.disabled = !result
+  syncTranslateButton()
 }
+
+const withTranslations = (r: PageResult | null) =>
+  r && {
+    ...r,
+    regions: r.regions.map((entry) => ({
+      ...entry,
+      translation: translations.get(regionKey(entry.region)),
+    })),
+    orphans: r.orphans.map((line, i) => ({ ...line, translation: translations.get(orphanKey(i)) })),
+  }
 
 function report(r: PageResult) {
   const t = r.timings
@@ -260,8 +286,56 @@ function report(r: PageResult) {
   setStatus(parts.join(' ／ '), Boolean(r.fallbackReason))
 }
 
+function showTranslation(key: string, text: string) {
+  translations.set(key, text)
+  const block = panel.querySelector(`[data-key="${key}"]`)
+  if (!block) return
+  const el = block.querySelector('.translation') ?? block.appendChild(element('div', 'translation'))
+  el.textContent = text
+}
+
+async function translateVisible() {
+  const { signal } = (translating = new AbortController())
+  render()
+  const items = visibleItems().filter(
+    (item) => !item.table && item.text.trim() && !translations.has(item.key),
+  )
+  let current = ''
+  try {
+    for (const [i, item] of items.entries()) {
+      current = item.key
+      const progress = `翻訳中… ${i + 1} / ${items.length}`
+      setStatus(progress)
+      await translate(reflow(item.lines.map((line) => line.text)), {
+        signal,
+        onDownload: (loaded, total) =>
+          signal.aborted ||
+          setStatus(
+            loaded < total
+              ? `翻訳モデルをダウンロード中… ${megabytes(loaded)} / ${megabytes(total)} MB`
+              : progress,
+          ),
+        onPartial: (text) => signal.aborted || showTranslation(item.key, text),
+      })
+    }
+    setStatus(`${items.length} 件を翻訳しました。`)
+  } catch (error) {
+    if (signal.aborted) return
+    translations.delete(current)
+    setStatus(`翻訳に失敗しました: ${error instanceof Error ? error.message : String(error)}`, true)
+  } finally {
+    if (translating?.signal === signal) {
+      translating = null
+      render()
+    }
+  }
+}
+
 async function run() {
   if (!source || busy) return
+  translating?.abort()
+  translating = null
+  translations.clear()
   setBusy(true)
   try {
     const bitmap = await createImageBitmap(source)
@@ -325,9 +399,11 @@ $<HTMLInputElement>('file').addEventListener('change', (event) => {
   if (file) open(file)
   input.value = ''
 })
-$('sample').addEventListener('click', async () =>
-  open(await (await fetch(`${import.meta.env.BASE_URL}samples/sample-ja.png`)).blob()),
-)
+for (const button of document.querySelectorAll<HTMLButtonElement>('[data-sample]'))
+  button.addEventListener('click', async () =>
+    open(await (await fetch(`${import.meta.env.BASE_URL}samples/${button.dataset.sample}`)).blob()),
+  )
+translateAll.addEventListener('click', () => void translateVisible())
 score.addEventListener('input', render)
 layout.addEventListener('change', () => void run())
 
@@ -362,7 +438,7 @@ copyAll.addEventListener('click', () =>
 download.addEventListener('click', () => {
   const link = document.createElement('a')
   link.href = URL.createObjectURL(
-    new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' }),
+    new Blob([JSON.stringify(withTranslations(result), null, 2)], { type: 'application/json' }),
   )
   link.download = 'ocr-result.json'
   link.click()

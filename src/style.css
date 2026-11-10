@@ -39,6 +39,9 @@ h1 small {
   font-weight: 400;
   color: var(--muted);
 }
+h1 a {
+  color: inherit;
+}
 .controls {
   display: flex;
   flex-wrap: wrap;
@@ -222,6 +225,12 @@ body.dragging #stage {
 }
 .block .text {
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.block .translation {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--border);
   overflow-wrap: anywhere;
 }
 .block .text:empty::after {
